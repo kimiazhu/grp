@@ -1,0 +1,13 @@
+# this is a template conf.yml file,
+# you need to redefine your own file under
+# project's root
+server:
+  runmode: debug #or debug/test/release
+  port: 8888
+
+ext:
+  versionName: "0.0.1"
+  versionCode: 1
+
+  target: "http://www.google.com"
+  host: "http://localhost:8888"
