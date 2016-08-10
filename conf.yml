@@ -9,5 +9,13 @@ ext:
   versionName: "0.0.1"
   versionCode: 1
 
-  target: "http://www.google.com"
-  host: "http://localhost:8888"
+  proxy:
+    google:
+      remote: "https://www.google.com"
+      local: "http://g.localhost:8888"
+    gmail:
+      remote: "https://mail.google.com"
+      local: "http://m.localhost:8888"
+    googleAccount:
+      remote: "https://accounts.google.com"
+      local: "http://a.localhost:8888"

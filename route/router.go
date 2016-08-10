@@ -1,6 +1,6 @@
 // Author: ZHU HAIHUA
 // Date: 8/10/16
-package main
+package route
 
 import (
 	"fmt"
@@ -12,14 +12,37 @@ import (
 	"strings"
 )
 
+//type ReverseProxy struct {
+//	Local string
+//	Remote string
+//}
+
+// 反向代理是一个map对象,key是需要被代理的远程地址,
+// value是服务器本地地址,包括端口号
+type ReverseProxies map[string]string
+
+// 代理列表是一个map对象,key和value值和ReverseProxies
+// 正好相反
+type Proxies map[string]string
+
 // Router 返回一个中间件函数, 将本地请求重定向至远端服务器,
 // 在拿到远端服务器应答之后, 替换应答中的远程服务器域名后将
 // 其回写到本地。
-func Route(local, remote string) func(*gin.Context) {
+func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
 	return func(c *gin.Context) {
-		log4go.Debug("handled request...uri is: %s, url is: %s", c.Request.RequestURI, c.Request.URL)
-		log4go.Debug("client request is: %s", util.ReflectToString(c.Request))
+		//_req, _ := httputil.DumpRequest(c.Request, true)
+		//log4go.Debug("client request is: \n%s", string(_req))
+		//var buf bytes.Buffer
+		//reader := bytes.NewReader(_req)
+		//buf.ReadFrom(reader)
+		//writer := bufio.NewWriter(&buf)
+		//c.Request.Write(writer)
+		//writer.Flush()
 
+		//log4go.Debug("------client request is: \n%s", c.Request)
+
+		local := "http://" + c.Request.Host
+		remote := p[local]
 		url := fmt.Sprintf("%s%s", remote, c.Request.RequestURI)
 		log4go.Debug("ready to request url: %s", url)
 		req, _ := http.NewRequest(c.Request.Method, url, c.Request.Body)
@@ -63,8 +86,13 @@ func Route(local, remote string) func(*gin.Context) {
 			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
-		s := strings.Replace(string(body), remote, local, -1)
-		c.Writer.Write([]byte(s))
+
+		result := string(body)
+		for _remote, _local := range r {
+			log4go.Debug("ready to proccess %s", _remote)
+			result = strings.Replace(result, _remote, _local, -1)
+		}
+		c.Writer.Write([]byte(result))
 	}
 
 }
