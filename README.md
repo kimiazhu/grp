@@ -47,7 +47,6 @@ $ nohup ./grp > /dev/null 2>stderr.log &
 
 ### TODO
 
-- 启停脚本。(P0)
 - 支持一个本地子域名对应多个远程站点，无需DNS配置多个子域名的情况代理多个远程地址。(P0)
 - SSL支持，当本地服务不是起在80和443端口时，在做域名替换的时候要根据远程服务器的Schema或者端口号智能切换本地端口号。这个问题目前在登录accounts.google.com时会出现。(P1)
 - 登录和会话保持。(P1)
@@ -55,3 +54,14 @@ $ nohup ./grp > /dev/null 2>stderr.log &
 - multi backend services and load balance support
 - 自动感知网站是否使用https? 避免手工在配置文件中进行配置。
 - 支持通过顶级域名代理网站同一顶级域名下对应的所有子域名。
+
+### Change Log
+
+##### 2016/08/10
+
+- Initial Commit
+- 支持Google和百度搜索, zh.wikipedia.org
+
+##### 2016/08/14
+
+- restart.sh script for Linux and Mac OS
