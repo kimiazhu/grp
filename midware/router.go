@@ -1,19 +1,20 @@
 // Author: ZHU HAIHUA
 // Date: 8/10/16
-package route
+package midware
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/kimiazhu/grp/util/io"
 	"github.com/kimiazhu/log4go"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"net/http/httputil"
+	"strings"
 )
 
 type Server struct {
-	Host string
+	Host   string
 	Schema string
 }
 
@@ -42,7 +43,7 @@ func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
 		if remote == "" {
 			log4go.Error("Local host [%s] cannot be found", local)
 			msg := fmt.Errorf("no proxy for %s", local)
-			c.AbortWithError(http.StatusNotFound, msg);
+			c.AbortWithError(http.StatusNotFound, msg)
 			c.String(http.StatusNotFound, msg.Error())
 			return
 		}
@@ -85,12 +86,22 @@ func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
 			}
 		}
 
-		for _, value := range resp.Request.Cookies() {
-			c.Writer.Header().Add(value.Name, value.Value)
-		}
+		//for _, value := range resp.Request.Cookies() {
+		//	c.Writer.Header().Add(value.Name, value.Value)
+		//}
 
 		c.Writer.WriteHeader(resp.StatusCode)
-		body, err := ioutil.ReadAll(resp.Body)
+		encoding := resp.Header.Get("Content-Encoding")
+
+		reader, err := ioutils.ZipReader(encoding, resp.Body)
+		if err != nil {
+			log4go.Error("Read body failed: %v", err)
+			c.JSON(http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer reader.Close()
+		body, err := ioutil.ReadAll(reader)
+		result := string(body)
 		if err != nil {
 			log4go.Error("error occur while read response, error is: %v", err)
 			dat, e := httputil.DumpResponse(resp, true)
@@ -104,11 +115,29 @@ func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
 			return
 		}
 
-		result := string(body)
-		for _remote, _local := range r {
-			result = strings.Replace(result, _remote, _local, -1)
+		contentType := resp.Header.Get("Content-Type")
+		log4go.Debug("content-type: %v", contentType)
+		if isText(contentType) {
+			// is text??
+			log4go.Fine("original response body is: %s", string(body))
+			for _remote, _local := range r {
+				result = strings.Replace(result, _remote, _local, -1)
+			}
+			body = []byte(result)
 		}
-		c.Writer.Write([]byte(result))
+
+		ioutils.ZipWriter(encoding, c.Writer).Write(body)
 	}
 
+}
+
+var TEXT_CONTENT []string = []string{"text/plain", "text/html", "text/xml", "application/json", "application/xml", "application/javascript"}
+
+func isText(contentType string) bool {
+	for _, typ := range TEXT_CONTENT {
+		if strings.Contains(contentType, typ) {
+			return true
+		}
+	}
+	return false
 }

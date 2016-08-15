@@ -5,13 +5,13 @@ package main
 import (
 	"github.com/kimiazhu/ginweb"
 	"github.com/kimiazhu/ginweb/conf"
-	"github.com/kimiazhu/grp/route"
+	"github.com/kimiazhu/grp/midware"
 	"github.com/kimiazhu/log4go"
 	"github.com/kimiazhu/golib/utils"
 )
 
-var ReverseProxies route.ReverseProxies = make(route.ReverseProxies)
-var Proxies route.Proxies = make(route.Proxies)
+var ReverseProxies midware.ReverseProxies = make(midware.ReverseProxies)
+var Proxies midware.Proxies = make(midware.Proxies)
 //var Servers []route.Server = make([]route.Server, 0)
 
 func init() {
@@ -25,14 +25,14 @@ func init() {
 		if ls, ok := _v["localSchema"]; ok {
 			localSchema = ls.(string)
 		}
-		route.SvrCnf[local] = &route.Server{Host: local, Schema: localSchema}
+		midware.SvrCnf[local] = &midware.Server{Host: local, Schema: localSchema}
 
 		remote := _v["remote"].(string)
 		remoteSchema := "http"
 		if rs, ok := _v["remoteSchema"]; ok {
 			remoteSchema = rs.(string)
 		}
-		route.SvrCnf[remote] = &route.Server{Host: remote, Schema: remoteSchema}
+		midware.SvrCnf[remote] = &midware.Server{Host: remote, Schema: remoteSchema}
 
 		ReverseProxies[remote] = local
 		Proxies[local] = remote
@@ -42,6 +42,6 @@ func init() {
 
 func main() {
 	g := ginweb.New()
-	g.Use(route.Route(ReverseProxies, Proxies))
+	g.Use(midware.Route(ReverseProxies, Proxies))
 	ginweb.Run(conf.Conf.SERVER.PORT, g)
 }
