@@ -5,38 +5,17 @@ package midware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/kimiazhu/grp/model"
 	"github.com/kimiazhu/grp/util/io"
 	"github.com/kimiazhu/log4go"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"strings"
 )
-
-type Server struct {
-	Host   string
-	Schema string
-}
-
-// 反向代理是一个map对象,key是需要被代理的远程地址,
-// value是服务器本地地址,包括端口号
-type ReverseProxies map[string]string
-
-// 代理列表是一个map对象,key和value值和ReverseProxies
-// 正好相反
-type Proxies map[string]string
-
-// 服务器配置用于存储远程或者本地服务器的配置信息,
-// key 是服务器 Host
-// value 是Server对象指针
-type ServerConfig map[string]*Server
-
-var SvrCnf ServerConfig = make(ServerConfig)
 
 // Router 返回一个中间件函数, 将本地请求重定向至远端服务器,
 // 在拿到远端服务器应答之后, 替换应答中的远程服务器域名后将
 // 其回写到本地。
-func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
+func Route(r model.ReverseProxies, p model.Proxies) func(*gin.Context) {
 	return func(c *gin.Context) {
 		local := c.Request.Host
 		remote := p[local]
@@ -80,64 +59,12 @@ func Route(r ReverseProxies, p Proxies) func(*gin.Context) {
 		log4go.Debug("continue to contruct response of url: %s", url)
 		defer resp.Body.Close()
 
-		for k, v := range resp.Header {
-			for _, vv := range v {
-				c.Writer.Header().Add(k, vv)
-			}
-		}
-
 		//for _, value := range resp.Request.Cookies() {
 		//	c.Writer.Header().Add(value.Name, value.Value)
 		//}
 
-		c.Writer.WriteHeader(resp.StatusCode)
-		encoding := resp.Header.Get("Content-Encoding")
-
-		reader, err := ioutils.ZipReader(encoding, resp.Body)
-		if err != nil {
-			log4go.Error("Read body failed: %v", err)
-			c.JSON(http.StatusInternalServerError, err.Error())
-			return
-		}
-		defer reader.Close()
-		body, err := ioutil.ReadAll(reader)
-		result := string(body)
-		if err != nil {
-			log4go.Error("error occur while read response, error is: %v", err)
-			dat, e := httputil.DumpResponse(resp, true)
-			if e != nil {
-				log4go.Error("dump response failed: %v", e)
-			} else {
-				log4go.Error("dumped response body: %s", string(dat))
-			}
-			c.AbortWithError(http.StatusInternalServerError, err)
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		contentType := resp.Header.Get("Content-Type")
-		log4go.Debug("content-type: %v", contentType)
-		if isText(contentType) {
-			// is text??
-			log4go.Fine("original response body is: %s", string(body))
-			for _remote, _local := range r {
-				result = strings.Replace(result, _remote, _local, -1)
-			}
-			body = []byte(result)
-		}
-
-		ioutils.ZipWriter(encoding, c.Writer).Write(body)
+		body, unzipped, err := ioutils.SmartRead(resp, p, true)
+		ioutils.SmartWrite(c, resp, body, unzipped)
 	}
 
-}
-
-var TEXT_CONTENT []string = []string{"text/plain", "text/html", "text/xml", "application/json", "application/xml", "application/javascript"}
-
-func isText(contentType string) bool {
-	for _, typ := range TEXT_CONTENT {
-		if strings.Contains(contentType, typ) {
-			return true
-		}
-	}
-	return false
 }

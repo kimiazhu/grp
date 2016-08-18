@@ -9,14 +9,17 @@ ext:
   proxy:
     google:
       remote: "www.google.com"
+      remoteSchema: "https"
       local: "g.localhost:8888"
     gmail:
       remote: "mail.google.com"
+      remoteSchema: "https"
+      local: "g.localhost:8888"
       local: "m.localhost:8888"
     googleAccount:
       remote: "accounts.google.com"
       # if remoteSchema or localSchema is http, you can ignore it
-      remoteSchema: "http"
+      remoteSchema: "https"
       local: "a.localhost:8888"
     baidu:
       remote: "www.baidu.com"

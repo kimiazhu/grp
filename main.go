@@ -8,10 +8,11 @@ import (
 	"github.com/kimiazhu/grp/midware"
 	"github.com/kimiazhu/log4go"
 	"github.com/kimiazhu/golib/utils"
+	"github.com/kimiazhu/grp/model"
 )
 
-var ReverseProxies midware.ReverseProxies = make(midware.ReverseProxies)
-var Proxies midware.Proxies = make(midware.Proxies)
+var ReverseProxies model.ReverseProxies = make(model.ReverseProxies)
+var Proxies model.Proxies = make(model.Proxies)
 //var Servers []route.Server = make([]route.Server, 0)
 
 func init() {
@@ -25,14 +26,14 @@ func init() {
 		if ls, ok := _v["localSchema"]; ok {
 			localSchema = ls.(string)
 		}
-		midware.SvrCnf[local] = &midware.Server{Host: local, Schema: localSchema}
+		model.SvrCnf[local] = &model.Server{Host: local, Schema: localSchema}
 
 		remote := _v["remote"].(string)
 		remoteSchema := "http"
 		if rs, ok := _v["remoteSchema"]; ok {
 			remoteSchema = rs.(string)
 		}
-		midware.SvrCnf[remote] = &midware.Server{Host: remote, Schema: remoteSchema}
+		model.SvrCnf[remote] = &model.Server{Host: remote, Schema: remoteSchema}
 
 		ReverseProxies[remote] = local
 		Proxies[local] = remote
