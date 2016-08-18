@@ -100,6 +100,7 @@ func SmartWrite(c *gin.Context, resp *http.Response, body []byte, unzipped bool)
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
 		_, err := gz.Write(body)
+		gz.Close()
 		if err != nil {
 			log4go.Debug("zip body failed: %v", err)
 			c.JSON(http.StatusInternalServerError, err.Error())
