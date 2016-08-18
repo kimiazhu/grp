@@ -37,8 +37,6 @@ $ nohup ./grp > /dev/null 2>stderr.log &
 
 ### 支持网站列表
 
-目前只是一个非常初级的 v0.0.1版本。
-
 已测试网站列表:
 
 - Google搜索
@@ -64,4 +62,9 @@ $ nohup ./grp > /dev/null 2>stderr.log &
 
 ##### 2016/08/14
 
-- restart.sh script for Linux and Mac OS
+- grp.sh script for Linux
+
+##### 2016/08/18
+
+- refactor && bug fixes
+- handle compressed response, replaced all target host name.
