@@ -3,16 +3,18 @@
 package main
 
 import (
+	"fmt"
 	"github.com/kimiazhu/ginweb"
 	"github.com/kimiazhu/ginweb/conf"
-	"github.com/kimiazhu/grp/midware"
-	"github.com/kimiazhu/log4go"
 	"github.com/kimiazhu/golib/utils"
+	"github.com/kimiazhu/grp/midware"
 	"github.com/kimiazhu/grp/model"
+	"github.com/kimiazhu/log4go"
 )
 
 var ReverseProxies model.ReverseProxies = make(model.ReverseProxies)
 var Proxies model.Proxies = make(model.Proxies)
+
 //var Servers []route.Server = make([]route.Server, 0)
 
 func init() {
@@ -26,6 +28,7 @@ func init() {
 		if ls, ok := _v["localSchema"]; ok {
 			localSchema = ls.(string)
 		}
+		local = combinePort(local, localSchema)
 		model.SvrCnf[local] = &model.Server{Host: local, Schema: localSchema}
 
 		remote := _v["remote"].(string)
@@ -39,6 +42,15 @@ func init() {
 		Proxies[local] = remote
 	}
 	log4go.Info("Load proxy list: %v", util.ReflectToString(Proxies))
+}
+
+func combinePort(host, schema string) string {
+	if (schema == "http" && conf.Conf.SERVER.PORT != "80") ||
+		schema == "https" && conf.Conf.SERVER.PORT != "443" {
+		return fmt.Sprintf("%s:%s", host, conf.Conf.SERVER.PORT)
+	} else {
+		return host
+	}
 }
 
 func main() {

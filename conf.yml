@@ -10,18 +10,17 @@ ext:
     google:
       remote: "www.google.com"
       remoteSchema: "https"
-      local: "g.localhost:8888"
+      local: "google.localhost"
     gmail:
       remote: "mail.google.com"
       remoteSchema: "https"
-      local: "g.localhost:8888"
-      local: "m.localhost:8888"
+      local: "gmail.localhost"
     googleAccount:
       remote: "accounts.google.com"
       # if remoteSchema or localSchema is http, you can ignore it
       remoteSchema: "https"
-      local: "a.localhost:8888"
+      local: "accounts.localhost"
     baidu:
       remote: "www.baidu.com"
       remoteSchema: "https"
-      local: "baidu.localhost:8888"
+      local: "baidu.localhost"
