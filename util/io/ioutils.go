@@ -51,29 +51,38 @@ func renewContentLength(header http.Header, length int) {
 func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []byte, unzipped bool, err error) {
 	encoding := resp.Header.Get("Content-Encoding")
 	contentType := resp.Header.Get("Content-Type")
-	if resp.StatusCode == http.StatusOK && isZiped(encoding) && isText(contentType) && replaceHost {
-		// unzip the content
-		var reader io.ReadCloser
-		reader, err = gzip.NewReader(resp.Body)
-		if err != nil {
-			log4go.Error("new zip reader failed: %v", err)
-			DumpResponse(resp)
-			return
-		}
-		defer reader.Close()
+	if isText(contentType) && replaceHost {
+		if isZiped(encoding) {
+			// unzip the content
+			var reader io.ReadCloser
+			reader, err = gzip.NewReader(resp.Body)
+			if err != nil {
+				log4go.Error("new zip reader failed: %v", err)
+				DumpResponse(resp)
+				return
+			}
 
-		unzipped = true
-		// read to byte array then replace all
-		body, err = ioutil.ReadAll(reader)
-		if err != nil {
-			log4go.Error("read from zip reader failed: %v", err)
-			return
+			unzipped = true
+			// read to byte array then replace all
+			body, err = ioutil.ReadAll(reader)
+			reader.Close()
+			if err != nil {
+				log4go.Error("read from zip reader failed: %v", err)
+				return
+			}
+		} else {
+			body, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log4go.Error("read from formal http body failed: %v", err)
+				return
+			}
 		}
 
 		data := string(body)
 		for _local, _remote := range p {
 			data = strings.Replace(data, "https://"+_remote, "http://"+_local, -1)
 			data = strings.Replace(data, "http://"+_remote, "http://"+_local, -1)
+			data = strings.Replace(data, _remote, "http://"+_local, -1)
 		}
 		body = []byte(data)
 	} else {
