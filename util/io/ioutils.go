@@ -28,7 +28,7 @@ func isText(contentType string) bool {
 	return false
 }
 
-func isZiped(encode string) bool {
+func isZipped(encode string) bool {
 	return strings.Contains(encode, "gzip")
 }
 
@@ -43,8 +43,7 @@ func DumpResponse(resp *http.Response) {
 
 func renewContentLength(header http.Header, length int) {
 	if header.Get("Content-Length") != "" {
-		header.Del("Content-Length")
-		header.Add("Content-Length", strconv.Itoa(length))
+		header.Set("Content-Length", strconv.Itoa(length))
 	}
 }
 
@@ -52,7 +51,7 @@ func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []b
 	encoding := resp.Header.Get("Content-Encoding")
 	contentType := resp.Header.Get("Content-Type")
 	if isText(contentType) && replaceHost {
-		if isZiped(encoding) {
+		if isZipped(encoding) {
 			// unzip the content
 			var reader io.ReadCloser
 			reader, err = gzip.NewReader(resp.Body)
@@ -79,6 +78,7 @@ func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []b
 		}
 
 		data := string(body)
+		log4go.Finest("origin response body: %s", data)
 		for _local, _remote := range p {
 			data = strings.Replace(data, "https://"+_remote, "http://"+_local, -1)
 			data = strings.Replace(data, "http://"+_remote, "http://"+_local, -1)
