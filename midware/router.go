@@ -38,8 +38,10 @@ func Route(r model.ReverseProxies, p model.Proxies) func(*gin.Context) {
 		}
 
 		req.Host = remote
-		req.Header.Del("Referer")
-		req.Header.Add("Referer", remote)
+		req.Header.Set("Referer", remote)
+		req.Header.Set("X_Forward_For", local)
+		req.Header.Set("X-Real-IP", local)
+
 		//log4go.Debug("new request is: %s", util.ReflectToString(c.Request))
 		resp, err := http.DefaultClient.Do(req)
 
