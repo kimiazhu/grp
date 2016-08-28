@@ -6,19 +6,24 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/kimiazhu/grp/model"
-	"github.com/kimiazhu/grp/util/io"
+	"github.com/kimiazhu/grp/filter"
 	"github.com/kimiazhu/log4go"
 	"net/http"
 	"net/http/httputil"
+	"strings"
+	"net/url"
+	"strconv"
+	"io/ioutil"
+	"github.com/kimiazhu/grp/util/io"
 )
 
 // Router 返回一个中间件函数, 将本地请求重定向至远端服务器,
 // 在拿到远端服务器应答之后, 替换应答中的远程服务器域名后将
 // 其回写到本地。
-func Route(r model.ReverseProxies, p model.Proxies) func(*gin.Context) {
+func Route() func(*gin.Context) {
 	return func(c *gin.Context) {
 		local := c.Request.Host
-		remote := p[local]
+		remote := model.Proxies[local]
 		if remote == "" {
 			log4go.Error("Local host [%s] cannot be found", local)
 			msg := fmt.Errorf("no proxy for %s", local)
@@ -27,23 +32,39 @@ func Route(r model.ReverseProxies, p model.Proxies) func(*gin.Context) {
 			return
 		}
 
-		url := fmt.Sprintf("https://%s%s", remote, c.Request.RequestURI)
-		log4go.Fine("ready to request url: %s", url)
-		req, _ := http.NewRequest(c.Request.Method, url, c.Request.Body)
-		//req.Host = target
-		for k, v := range c.Request.Header {
-			for _, vv := range v {
-				req.Header.Add(k, vv)
+		requestURI := ioutils.ReplaceHost(c.Request.RequestURI, true)
+		reqUrl := fmt.Sprintf("%s://%s%s", model.SvrCnf[remote].Schema, remote, requestURI)
+		method := c.Request.Method
+		log4go.Fine("ready to request url: %s, method: %s", reqUrl, method)
+		req, _ := http.NewRequest(method, reqUrl, nil)
+
+		contentLength := ""
+		if method == "POST" {
+			c.Request.ParseMultipartForm(32 << 20) //32M
+			form := url.Values{}
+			for k, v := range c.Request.PostForm {
+				for _, vv := range v {
+					form.Add(k, ioutils.ReplaceHost(vv, true))
+				}
 			}
+
+			encodedForm := form.Encode()
+			req.Body = ioutil.NopCloser(strings.NewReader(encodedForm))
+			contentLength = strconv.Itoa(len([]byte(encodedForm)))
+		} else {
+			req.Body = c.Request.Body
+		}
+
+		filter.FilterHeader(c.Request.Header, req.Header, remote, true)
+		req.Header.Add("Host", remote)
+
+		if cl := req.Header.Get("Content-Length"); len(cl) > 0 {
+			log4go.Fine("old content length: %s, new content length: %s", cl, contentLength)
+			req.Header.Set("Content-Length", contentLength)
 		}
 
 		req.Host = remote
-		req.Header.Set("Referer", remote)
-		req.Header.Set("X_Forward_For", local)
-		req.Header.Set("X-Real-IP", local)
-
-		//log4go.Debug("new request is: %s", util.ReflectToString(c.Request))
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := http.DefaultTransport.RoundTrip(req)
 
 		if err != nil {
 			log4go.Error("error occur while do request, error is: %v", err)
@@ -58,15 +79,15 @@ func Route(r model.ReverseProxies, p model.Proxies) func(*gin.Context) {
 			return
 		}
 
-		log4go.Debug("continue to contruct response of url: %s", url)
+		log4go.Debug("continue to contruct response of url: %s, httpStatus: %v", reqUrl, resp.Status)
 		defer resp.Body.Close()
 
 		//for _, value := range resp.Request.Cookies() {
 		//	c.Writer.Header().Add(value.Name, value.Value)
 		//}
 
-		body, unzipped, err := ioutils.SmartRead(resp, p, true)
-		ioutils.SmartWrite(c, resp, body, unzipped)
+		body, unzipped, err := filter.SmartRead(resp, true)
+		filter.SmartWrite(c, resp, body, unzipped)
 	}
 
 }

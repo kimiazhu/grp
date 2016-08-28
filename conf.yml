@@ -10,16 +10,28 @@ ext:
     google:
       remote: "www.google.com"
       remoteSchema: "https"
-      local: "google.localhost"
+      local: "google.localhost.com"
+    googleapis:
+      remote: "apis.google.com"
+      remoteSchema: "https"
+      local: "googleapis.localhost.com"
     gmail:
       remote: "mail.google.com"
       remoteSchema: "https"
-      local: "gmail.localhost"
+      local: "gmail.localhost.com"
     googleAccount:
       remote: "accounts.google.com"
       # if remoteSchema or localSchema is http, you can ignore it
       remoteSchema: "https"
-      local: "accounts.localhost"
+      local: "accounts.localhost.com"
+    gstaticssl:
+      remote: "ssl.gstatic.com"
+      remoteSchema: "https"
+      local: "gstaticssl.localhost.com"
+    gstatic:
+      remote: "www.gstatic.com"
+      remoteSchema: "https"
+      local: "gstatic.localhost.com"
     baidu:
       remote: "www.baidu.com"
       remoteSchema: "https"

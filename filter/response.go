@@ -1,12 +1,11 @@
 // Author: ZHU HAIHUA
 // Date: 8/15/16
-package ioutils
+package filter
 
 import (
 	"bytes"
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
-	"github.com/kimiazhu/grp/model"
 	"github.com/kimiazhu/log4go"
 	"io"
 	"io/ioutil"
@@ -14,6 +13,7 @@ import (
 	"net/http/httputil"
 	"strconv"
 	"strings"
+	"github.com/kimiazhu/grp/util/io"
 )
 
 var TEXT_CONTENT []string = []string{"text/plain", "text/html", "text/xml", "text/javascript", "text/json",
@@ -47,7 +47,7 @@ func renewContentLength(header http.Header, length int) {
 	}
 }
 
-func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []byte, unzipped bool, err error) {
+func SmartRead(resp *http.Response, replaceHost bool) (body []byte, unzipped bool, err error) {
 	encoding := resp.Header.Get("Content-Encoding")
 	contentType := resp.Header.Get("Content-Type")
 	if isText(contentType) && replaceHost {
@@ -77,13 +77,7 @@ func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []b
 			}
 		}
 
-		data := string(body)
-		log4go.Finest("origin response body: %s", data)
-		for _local, _remote := range p {
-			data = strings.Replace(data, "https://"+_remote, "http://"+_local, -1)
-			data = strings.Replace(data, "http://"+_remote, "http://"+_local, -1)
-			data = strings.Replace(data, _remote, "http://"+_local, -1)
-		}
+		data := ioutils.ReplaceHost(string(body), false)
 		body = []byte(data)
 	} else {
 		// not compressed or not text(which can pass to client directly)
@@ -96,12 +90,12 @@ func SmartRead(resp *http.Response, p model.Proxies, replaceHost bool) (body []b
 	return
 }
 
+// resp是远程被代理的服务器返回的http应答。
+// body是我们处理过后的远程服务器应答Body数据。
+// unzipped 表示body数据是否经过解压,如果unzipped=true, 则表明解压过,
+// 那么在反馈给客户端之前需要重新压缩。
 func SmartWrite(c *gin.Context, resp *http.Response, body []byte, unzipped bool) {
-	for k, v := range resp.Header {
-		for _, vv := range v {
-			c.Writer.Header().Add(k, vv)
-		}
-	}
+	FilterHeader(resp.Header, c.Writer.Header(), "", false)
 
 	newBody := body
 	log4go.Fine("origin body length: %v, need compress: %v", len(body), unzipped)
@@ -118,10 +112,21 @@ func SmartWrite(c *gin.Context, resp *http.Response, body []byte, unzipped bool)
 		newBody = buf.Bytes()
 		log4go.Fine("complete compress body, new length: %v", len(newBody))
 	}
+	//writeCookies(c, resp, true)
 	renewContentLength(c.Writer.Header(), len(newBody))
 	c.Writer.WriteHeader(resp.StatusCode)
 	c.Writer.Write(newBody)
 	c.Writer.Flush()
+}
+
+func writeCookies(c *gin.Context, resp *http.Response, reverse bool) {
+	cookies := FilterCookie(resp.Cookies(), reverse)
+	for _, cookie := range cookies {
+		log4go.Debug("&&&&&&&&&&&&&&%s", cookie.Domain)
+		log4go.Debug("&&&&&&&&&&&&&&%s", cookie.String())
+		//c.SetCookie(cookie.Name, cookie.Value, cookie.MaxAge, cookie.Path, cookie.Domain, cookie.Secure, cookie.HttpOnly)
+		http.SetCookie(c.Writer, cookie)
+	}
 }
 
 func ZipReader(encoding string, reader io.ReadCloser) (io.ReadCloser, error) {

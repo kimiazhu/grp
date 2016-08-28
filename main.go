@@ -10,10 +10,9 @@ import (
 	"github.com/kimiazhu/grp/midware"
 	"github.com/kimiazhu/grp/model"
 	"github.com/kimiazhu/log4go"
+	"github.com/kimiazhu/grp/util/io"
 )
 
-var ReverseProxies model.ReverseProxies = make(model.ReverseProxies)
-var Proxies model.Proxies = make(model.Proxies)
 
 //var Servers []route.Server = make([]route.Server, 0)
 
@@ -38,10 +37,14 @@ func init() {
 		}
 		model.SvrCnf[remote] = &model.Server{Host: remote, Schema: remoteSchema}
 
-		ReverseProxies[remote] = local
-		Proxies[local] = remote
+		model.ReverseProxies[remote] = local
+		model.Proxies[local] = remote
+
+		if model.LocalTopDomain == "" {
+			model.LocalTopDomain = ioutils.TopDomainName(local)
+		}
 	}
-	log4go.Info("Load proxy list: %v", util.ReflectToString(Proxies))
+	log4go.Info("Load proxy list: %v", util.ReflectToString(model.Proxies))
 }
 
 func combinePort(host, schema string) string {
@@ -55,6 +58,6 @@ func combinePort(host, schema string) string {
 
 func main() {
 	g := ginweb.New()
-	g.Use(midware.Route(ReverseProxies, Proxies))
+	g.Use(midware.Route())
 	ginweb.Run(conf.Conf.SERVER.PORT, g)
 }
