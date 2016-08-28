@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
+	"github.com/kimiazhu/grp/util/io"
 	"github.com/kimiazhu/log4go"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 	"net/http/httputil"
 	"strconv"
 	"strings"
-	"github.com/kimiazhu/grp/util/io"
 )
 
 var TEXT_CONTENT []string = []string{"text/plain", "text/html", "text/xml", "text/javascript", "text/json",

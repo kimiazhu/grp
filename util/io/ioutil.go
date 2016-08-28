@@ -42,7 +42,7 @@ func IsTopDomain(domain string) bool {
 }
 
 func TopDomainName(domain string) string {
-	if strings.HasPrefix(domain, ".")  {
+	if strings.HasPrefix(domain, ".") {
 		domain = domain[1:]
 	}
 

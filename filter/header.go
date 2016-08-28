@@ -3,12 +3,12 @@
 package filter
 
 import (
-	"net/http"
-	"github.com/kimiazhu/grp/util/io"
-	"github.com/kimiazhu/log4go"
-	"strings"
 	"fmt"
 	"github.com/kimiazhu/grp/model"
+	"github.com/kimiazhu/grp/util/io"
+	"github.com/kimiazhu/log4go"
+	"net/http"
+	"strings"
 )
 
 // 过滤src的Header信息, reverse=true表示将远程Host替换成本地Host。
@@ -16,7 +16,7 @@ import (
 func FilterHeader(src, target http.Header, remoteHost string, isRequest bool) http.Header {
 	for k, v := range src {
 		for _, vv := range v {
-			vv =  ioutils.ReplaceHost(vv, isRequest)
+			vv = ioutils.ReplaceHost(vv, isRequest)
 			kk := strings.ToLower(k)
 			if kk == "set-cookie" || kk == "cookie" {
 				vv = DealCookie(remoteHost, vv, isRequest)
@@ -39,7 +39,7 @@ func DealCookie(remoteHost, cookieData string, isRequest bool) string {
 	}
 
 	var newCookies string
-	for i := 0; i < len(cookies); i++{
+	for i := 0; i < len(cookies); i++ {
 		cookie := cookies[i]
 		if topDomain := ioutils.TopDomainName(cookie.Domain); topDomain != "" {
 			if !isRequest {
@@ -57,5 +57,3 @@ func DealCookie(remoteHost, cookieData string, isRequest bool) string {
 
 	return newCookies
 }
-
-

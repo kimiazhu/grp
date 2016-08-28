@@ -5,16 +5,16 @@ package midware
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/kimiazhu/grp/model"
 	"github.com/kimiazhu/grp/filter"
+	"github.com/kimiazhu/grp/model"
+	"github.com/kimiazhu/grp/util/io"
 	"github.com/kimiazhu/log4go"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
-	"strings"
 	"net/url"
 	"strconv"
-	"io/ioutil"
-	"github.com/kimiazhu/grp/util/io"
+	"strings"
 )
 
 // Router 返回一个中间件函数, 将本地请求重定向至远端服务器,
