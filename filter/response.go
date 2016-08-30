@@ -17,7 +17,7 @@ import (
 )
 
 var TEXT_CONTENT []string = []string{"text/plain", "text/html", "text/xml", "text/javascript", "text/json",
-	"application/json", "application/xml", "application/javascript"}
+	"application/json", "application/xml", "application/javascript", "text/css"}
 
 func isText(contentType string) bool {
 	for _, typ := range TEXT_CONTENT {
